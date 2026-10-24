@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0d10">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ortak Oyuncular">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon.svg">
+<title>Ortak Oyuncular</title>
+<style>
+:root{--bg:#0b0d10;--card:#15191f;--card2:#101318;--text:#f4f7fb;--muted:#9aa4b2;--line:#252b34;--accent:#f0c84b;--accent2:#d9b13a}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,Segoe UI,Roboto,Arial,sans-serif}body{min-height:100vh;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}button,input{font:inherit}.wrap{max-width:720px;margin:0 auto;padding:18px 14px 34px}.top{padding:2px 2px 16px}.eyebrow{font-size:12px;color:var(--accent);font-weight:800;letter-spacing:.7px;text-transform:uppercase}.top h1{font-size:30px;line-height:1.05;letter-spacing:-.8px;margin:5px 0 7px}.top p{margin:0;color:var(--muted);font-size:14px;line-height:1.45}.grid{display:grid;gap:12px}.clubCard{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:14px;display:grid;grid-template-columns:66px minmax(0,1fr);gap:13px;align-items:center}.badge{width:66px;height:66px;border-radius:16px;background:white;display:grid;place-items:center;overflow:hidden}.badge img{width:58px;height:58px;object-fit:contain}.badge .letters{display:none;color:#111;font-weight:900;font-size:16px}.label{display:block;color:var(--muted);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.65px;margin:0 0 6px}.searchWrap{position:relative}.clubInput{width:100%;background:var(--card2);border:1px solid var(--line);border-radius:13px;color:var(--text);padding:13px 12px;font-size:16px;outline:none}.clubInput:focus{border-color:#667486}.suggestions{display:none;position:absolute;z-index:10;left:0;right:0;top:calc(100% + 6px);background:#181d24;border:1px solid #323945;border-radius:14px;overflow:hidden;box-shadow:0 18px 40px #0009;max-height:300px;overflow-y:auto}.suggestions.open{display:block}.sug{width:100%;border:0;border-bottom:1px solid #272e38;background:transparent;color:var(--text);padding:12px;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:10px}.sug:last-child{border-bottom:0}.sug:active{background:#222933}.sugName{font-weight:750}.sugCode{color:var(--muted);font-size:12px}.actions{display:grid;grid-template-columns:54px 1fr;gap:10px;margin:14px 0}.btn{border:0;border-radius:15px;min-height:50px;font-weight:900;font-size:16px}.swap{background:var(--card);color:var(--text);border:1px solid var(--line);font-size:22px}.find{background:var(--accent);color:#171309}.find:active{background:var(--accent2)}.find:disabled{opacity:.42}.results{display:none;background:var(--card);border:1px solid var(--line);border-radius:20px;overflow:hidden;margin-top:10px}.results.show{display:block}.rHead{padding:16px;border-bottom:1px solid var(--line)}.rTitle{font-size:19px;font-weight:950}.rPair{font-size:12px;color:var(--muted);margin-top:4px}.players{max-height:58vh;overflow:auto;-webkit-overflow-scrolling:touch}.player{padding:13px 16px;border-bottom:1px solid var(--line);display:flex;align-items:baseline;justify-content:space-between;gap:12px}.playerName{font-size:16px;font-weight:760;min-width:0}.years{font-size:12px;color:var(--muted);font-weight:700;text-align:right;white-space:nowrap}.player:last-child{border-bottom:0}.empty{padding:28px 16px;text-align:center;color:var(--muted)}.foot{font-size:11px;color:#707986;text-align:center;line-height:1.45;padding:16px 4px 0}.selectedName{font-size:12px;color:var(--muted);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}@media(min-width:620px){.grid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">Football history</div>
+    <h1>Ortak Oyuncular</h1>
+    <p>İki kulüp seç. Her ikisinin transfer geçmişinde bulunan oyuncuları anında gör.</p>
+  </header>
+
+  <main>
+    <div class="grid">
+      <section class="clubCard">
+        <div class="badge"><img id="logoA" alt=""><span class="letters" id="lettersA">A</span></div>
+        <div>
+          <span class="label">Kulüp 1</span>
+          <div class="searchWrap"><input id="inputA" class="clubInput" placeholder="Kulüp ara…" autocomplete="off" autocorrect="off" spellcheck="false"><div id="suggestA" class="suggestions"></div></div>
+          <div id="selectedA" class="selectedName">Seçilmedi</div>
+        </div>
+      </section>
+      <section class="clubCard">
+        <div class="badge"><img id="logoB" alt=""><span class="letters" id="lettersB">B</span></div>
+        <div>
+          <span class="label">Kulüp 2</span>
+          <div class="searchWrap"><input id="inputB" class="clubInput" placeholder="Kulüp ara…" autocomplete="off" autocorrect="off" spellcheck="false"><div id="suggestB" class="suggestions"></div></div>
+          <div id="selectedB" class="selectedName">Seçilmedi</div>
+        </div>
+      </section>
+    </div>
+
+    <div class="actions"><button id="swap" class="btn swap" aria-label="Kulüpleri değiştir">⇄</button><button id="find" class="btn find" disabled>Ortak oyuncuları bul</button></div>
+
+    <section id="results" class="results">
+      <div class="rHead"><div id="resultTitle" class="rTitle"></div><div id="resultPair" class="rPair"></div></div>
+      <div id="players" class="players"></div>
+    </section>
+  </main>
+  <footer class="foot">Kaynak: dcaribou / Transfermarkt datasets · Snapshot: 6 Temmuz 2026 · Maça çıkma şartı yok; transfer geçmişi esas alınır.</footer>
+</div>
+<script>/*__APP_DATA__*/</script>
+<script>
+(()=>{
+  const D=window.APP_DATA;
+  const clubs=D.clubs.map(([id,name,code])=>({id,name,code,search:(name+' '+code).toLocaleLowerCase('tr-TR')}));
+  let a=null,b=null;
+  const $=id=>document.getElementById(id);
+  const inputA=$('inputA'),inputB=$('inputB'),suggestA=$('suggestA'),suggestB=$('suggestB');
+  const find=$('find'),results=$('results'),players=$('players');
+  const collator=new Intl.Collator('tr',{sensitivity:'base'});
+  const logo=id=>`https://tmssl.akamaized.net/images/wappen/head/${id}.png`;
+
+  function updateButton(){find.disabled=!(a&&b&&a.id!==b.id)}
+  function renderClub(which,c){
+    const img=$(which==='A'?'logoA':'logoB'), letters=$(which==='A'?'lettersA':'lettersB'), selected=$(which==='A'?'selectedA':'selectedB');
+    if(!c){img.removeAttribute('src');img.style.display='none';letters.style.display='block';letters.textContent=which;selected.textContent='Seçilmedi';return}
+    selected.textContent=c.name;img.style.display='block';letters.style.display='none';img.src=logo(c.id);img.alt=c.name;
+    img.onerror=()=>{img.style.display='none';letters.style.display='block';letters.textContent=c.name.slice(0,2).toUpperCase()};
+  }
+  function choose(which,c){
+    if(which==='A'){a=c;inputA.value=c.name;suggestA.classList.remove('open');renderClub('A',c)}else{b=c;inputB.value=c.name;suggestB.classList.remove('open');renderClub('B',c)}
+    results.classList.remove('show'); updateButton();
+  }
+  function showSuggestions(which){
+    const input=which==='A'?inputA:inputB, box=which==='A'?suggestA:suggestB;
+    const q=input.value.trim().toLocaleLowerCase('tr-TR');
+    const matches=(q?clubs.filter(c=>c.search.includes(q)):clubs).slice(0,10);
+    box.innerHTML='';
+    for(const c of matches){const btn=document.createElement('button');btn.className='sug';btn.type='button';btn.innerHTML=`<span class="sugName"></span><span class="sugCode"></span>`;btn.querySelector('.sugName').textContent=c.name;btn.querySelector('.sugCode').textContent=c.code||'';btn.addEventListener('click',()=>choose(which,c));box.appendChild(btn)}
+    box.classList.toggle('open',matches.length>0);
+  }
+  for(const [input,which] of [[inputA,'A'],[inputB,'B']]){
+    input.addEventListener('focus',()=>showSuggestions(which));
+    input.addEventListener('input',()=>{if(which==='A'){a=null;renderClub('A',null)}else{b=null;renderClub('B',null)};updateButton();showSuggestions(which)});
+  }
+  document.addEventListener('click',e=>{if(!e.target.closest('.searchWrap')){suggestA.classList.remove('open');suggestB.classList.remove('open')}});
+  $('swap').addEventListener('click',()=>{const x=a;a=b;b=x;inputA.value=a?a.name:'';inputB.value=b?b.name:'';renderClub('A',a);renderClub('B',b);results.classList.remove('show');updateButton()});
+  find.addEventListener('click',()=>{
+    if(!a||!b||a.id===b.id)return;
+    const A=D.memberships[String(a.id)]||[], B=D.memberships[String(b.id)]||[];
+    const small=A.length<=B.length?A:B, large=A.length<=B.length?B:A, largeSet=new Set(large);
+    const common=small.filter(pid=>largeSet.has(pid)).map(pid=>({pid,name:D.players[String(pid)]||String(pid)})).sort((x,y)=>collator.compare(x.name,y.name));
+    $('resultTitle').textContent=`${common.length} ortak oyuncu`;$('resultPair').textContent=`${a.name} × ${b.name}`;players.innerHTML='';
+    if(!common.length){players.innerHTML='<div class="empty">Ortak oyuncu bulunamadı.</div>'}else{
+      const f=document.createDocumentFragment();
+      for(const item of common){
+        const ya=((D.arrivals[String(a.id)]||{})[String(item.pid)]||[]);
+        const yb=((D.arrivals[String(b.id)]||{})[String(item.pid)]||[]);
+        const d=document.createElement('div');d.className='player';
+        const n=document.createElement('div');n.className='playerName';n.textContent=item.name;
+        const y=document.createElement('div');y.className='years';
+        y.textContent=`${a.code||a.name}: ${ya.length?ya.join(', '):'—'} · ${b.code||b.name}: ${yb.length?yb.join(', '):'—'}`;
+        d.append(n,y);f.appendChild(d);
+      }
+      players.appendChild(f)
+    }
+    results.classList.add('show');
+  });
+  renderClub('A',null);renderClub('B',null);
+  if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js').catch(()=>{})}
+})();
+</script>
+</body>
+</html>
