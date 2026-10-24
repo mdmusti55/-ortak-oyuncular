@@ -14,15 +14,24 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout app
+        uses: actions/checkout@v4
+      - name: Checkout historical football data
+        uses: actions/checkout@v4
+        with:
+          repository: salimt/football-datasets
+          path: external-football
+          lfs: true
+          sparse-checkout: |
+            datalake/transfermarkt/player_profiles/player_profiles.csv
+            datalake/transfermarkt/transfer_history/transfer_history.csv
+          sparse-checkout-cone-mode: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - name: Build embedded football index
         run: python build.py
       - uses: actions/configure-pages@v5
-        with:
-          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: ./dist
