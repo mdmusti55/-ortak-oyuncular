@@ -13,12 +13,8 @@ TMP.mkdir(exist_ok=True)
 
 PROFILE_URL = "https://raw.githubusercontent.com/salimt/football-datasets/main/datalake/transfermarkt/player_profiles/player_profiles.csv"
 TRANSFER_URL = "https://github.com/salimt/football-datasets/raw/refs/heads/main/datalake/transfermarkt/transfer_history/transfer_history.csv"
-HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; OrtakOyuncularBuilder/2.2)"}
-TEAM_PATTERNS = [
-    re.compile(r"/verein/(\d+)", re.I),
-    re.compile(r"/club/(\d+)", re.I),
-    re.compile(r"[?&](?:club_id|verein_id|id)=(\d+)", re.I),
-]
+HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; OrtakOyuncularBuilder/2.3)"}
+TEAM_PATTERNS = [re.compile(r"/verein/(\d+)", re.I), re.compile(r"/club/(\d+)", re.I), re.compile(r"[?&](?:club_id|verein_id|id)=(\d+)", re.I)]
 ANY_NUM_RE = re.compile(r"(\d+)")
 NAME_ID_RE = re.compile(r"\s+\(\d+\)$")
 SPECIAL = {"retired", "without club", "career break", "unknown", "end of career", "retired from professional football"}
@@ -66,7 +62,6 @@ def team_id(value: str):
         m = p.search(s)
         if m:
             return int(m.group(1))
-    # Son çare: URL'deki ilk sayısal parçayı takım ID'si kabul et.
     m = ANY_NUM_RE.search(s)
     return int(m.group(1)) if m else None
 
@@ -93,7 +88,6 @@ transfers_path = resolve_source(EXT / "transfer_history" / "transfer_history.csv
 player_names = {}
 with profiles_path.open("r", encoding="utf-8-sig", errors="replace", newline="") as f:
     reader = csv.DictReader(f)
-    print("profile fields:", reader.fieldnames)
     for r in reader:
         raw_id = first(r, "player_id", "playerId", "player_id_x").strip()
         if not raw_id:
@@ -111,16 +105,11 @@ club_names = {}
 memberships = defaultdict(set)
 arrivals = defaultdict(lambda: defaultdict(set))
 transfer_count = 0
-sample_printed = False
-
 with transfers_path.open("r", encoding="utf-8-sig", errors="replace", newline="") as f:
     reader = csv.DictReader(f)
     print("transfer fields:", reader.fieldnames)
     for r in reader:
         transfer_count += 1
-        if not sample_printed:
-            print("transfer sample:", {k: r.get(k) for k in (reader.fieldnames or [])[:12]})
-            sample_printed = True
         raw_id = first(r, "player_id", "playerId", "player_id_x").strip()
         if not raw_id:
             continue
@@ -128,14 +117,10 @@ with transfers_path.open("r", encoding="utf-8-sig", errors="replace", newline=""
             pid = int(float(raw_id))
         except ValueError:
             continue
-
         from_name = first(r, "from_team_name", "from_club_name", "from_team").strip()
         to_name = first(r, "to_team_name", "to_club_name", "to_team").strip()
-        from_raw = first(r, "from_team_url", "from_club_url", "from_team_id", "from_club_id")
-        to_raw = first(r, "to_team_url", "to_club_url", "to_team_id", "to_club_id")
-        from_id = team_id(from_raw)
-        to_id = team_id(to_raw)
-
+        from_id = team_id(first(r, "from_team_url", "from_club_url", "from_team_id", "from_club_id"))
+        to_id = team_id(first(r, "to_team_url", "to_club_url", "to_team_id", "to_club_id"))
         if valid_team(from_name, from_id):
             club_names.setdefault(from_id, from_name)
             memberships[from_id].add(pid)
@@ -143,11 +128,7 @@ with transfers_path.open("r", encoding="utf-8-sig", errors="replace", newline=""
             club_names.setdefault(to_id, to_name)
             memberships[to_id].add(pid)
             date = first(r, "date_unformatted", "transfer_date", "date").strip()
-            year = None
-            if len(date) >= 4 and date[:4].isdigit():
-                year = int(date[:4])
-            elif len(date) >= 4 and date[-4:].isdigit():
-                year = int(date[-4:])
+            year = int(date[:4]) if len(date) >= 4 and date[:4].isdigit() else (int(date[-4:]) if len(date) >= 4 and date[-4:].isdigit() else None)
             if year:
                 arrivals[to_id][pid].add(year)
 
@@ -166,12 +147,20 @@ compact = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
 print(f"İndeks hazır: {len(clubs)} kulüp, {len(players_json)} oyuncu, {transfer_count} transfer, {len(compact)/1024/1024:.2f} MiB JSON")
 
 
-def club_by_part(part):
-    part = part.casefold()
-    return next(((cid, name) for cid, name in clubs if part in name.casefold()), None)
+def preferred_club(exact_names, contains=None):
+    exact_cf = [x.casefold() for x in exact_names]
+    for target in exact_cf:
+        for cid, name in clubs:
+            if name.casefold() == target:
+                return cid, name
+    if contains:
+        candidates = [(cid, name) for cid, name in clubs if contains.casefold() in name.casefold()]
+        candidates.sort(key=lambda x: (not x[1].casefold().startswith(contains.casefold()), len(x[1]), x[1].casefold()))
+        return candidates[0] if candidates else None
+    return None
 
-gs = club_by_part("galatasaray")
-rangers = club_by_part("rangers")
+gs = preferred_club(["Galatasaray", "Galatasaray SK", "Galatasaray A.Ş."], "Galatasaray")
+rangers = preferred_club(["Rangers FC", "Rangers"], "Rangers")
 if gs and rangers:
     common = memberships[gs[0]] & memberships[rangers[0]]
     names = sorted(player_names.get(pid, str(pid)) for pid in common)
