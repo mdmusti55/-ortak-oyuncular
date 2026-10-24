@@ -1,80 +1,127 @@
 #!/usr/bin/env python3
-import csv, gzip, io, json, time, urllib.request
+import csv, json, re, time, urllib.request
 from collections import defaultdict
 from pathlib import Path
 
-BASE = "https://pub-e682421888d945d684bcae8890b0ec20.r2.dev/data"
 ROOT = Path(__file__).resolve().parent
 SRC = ROOT / "src"
 DIST = ROOT / "dist"
+TMP = ROOT / ".build-cache"
 DIST.mkdir(exist_ok=True)
+TMP.mkdir(exist_ok=True)
 
-HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; OrtakOyuncularBuilder/1.0)"}
+PROFILE_URL = "https://media.githubusercontent.com/media/salimt/football-datasets/main/datalake/transfermarkt/player_profiles/player_profiles.csv"
+TRANSFER_URL = "https://media.githubusercontent.com/media/salimt/football-datasets/main/datalake/transfermarkt/transfer_history/transfer_history.csv"
+HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; OrtakOyuncularBuilder/2.0)"}
+TEAM_RE = re.compile(r"/verein/(\d+)")
+NAME_ID_RE = re.compile(r"\s+\(\d+\)$")
+SPECIAL = {
+    "retired", "without club", "career break", "unknown", "end of career",
+    "retired from professional football"
+}
 
-def download_gz(name: str) -> bytes:
-    url = f"{BASE}/{name}.csv.gz"
+
+def download(url: str, path: Path):
+    if path.exists() and path.stat().st_size > 1000:
+        print(f"cache: {path.name} ({path.stat().st_size/1024/1024:.1f} MiB)")
+        return
     last = None
     for attempt in range(4):
         try:
+            print(f"indiriliyor: {path.name}")
             req = urllib.request.Request(url, headers=HEADERS)
-            with urllib.request.urlopen(req, timeout=120) as r:
-                return r.read()
+            with urllib.request.urlopen(req, timeout=180) as r, path.open("wb") as f:
+                while True:
+                    chunk = r.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    f.write(chunk)
+            if path.stat().st_size < 1000:
+                raise RuntimeError("indirilen dosya beklenenden küçük")
+            return
         except Exception as e:
             last = e
+            path.unlink(missing_ok=True)
             if attempt < 3:
                 time.sleep(2 ** attempt)
     raise RuntimeError(f"{url} indirilemedi: {last}")
 
-def rows_from_gz(blob: bytes):
-    text = gzip.decompress(blob).decode("utf-8-sig", errors="replace")
-    return csv.DictReader(io.StringIO(text))
 
-print("clubs.csv.gz indiriliyor…")
-club_rows = list(rows_from_gz(download_gz("clubs")))
-clubs = []
-club_ids = set()
-for r in club_rows:
-    cid = str(r.get("club_id", "")).strip()
-    name = (r.get("name") or "").strip()
-    if not cid or not name:
-        continue
-    club_ids.add(cid)
-    clubs.append([int(cid), name, (r.get("club_code") or "").strip()])
-clubs.sort(key=lambda x: x[1].casefold())
-print(f"{len(clubs)} kulüp bulundu")
+def team_id(url: str):
+    m = TEAM_RE.search(url or "")
+    return int(m.group(1)) if m else None
 
-print("transfers.csv.gz indiriliyor…")
-transfer_rows = rows_from_gz(download_gz("transfers"))
+
+def clean_player_name(name: str):
+    name = (name or "").strip()
+    return NAME_ID_RE.sub("", name)
+
+
+def valid_team(name: str, tid):
+    return bool(tid and name and name.strip().casefold() not in SPECIAL)
+
+
+profiles_path = TMP / "player_profiles.csv"
+transfers_path = TMP / "transfer_history.csv"
+download(PROFILE_URL, profiles_path)
+download(TRANSFER_URL, transfers_path)
+
 player_names = {}
+with profiles_path.open("r", encoding="utf-8-sig", errors="replace", newline="") as f:
+    for r in csv.DictReader(f):
+        raw_id = (r.get("player_id") or "").strip()
+        if not raw_id:
+            continue
+        try:
+            pid = int(float(raw_id))
+        except ValueError:
+            continue
+        name = clean_player_name(r.get("player_name"))
+        if name:
+            player_names[pid] = name
+print(f"{len(player_names)} oyuncu profili okundu")
+
+club_names = {}
 memberships = defaultdict(set)
 arrivals = defaultdict(lambda: defaultdict(set))
 transfer_count = 0
-for r in transfer_rows:
-    transfer_count += 1
-    pid_s = str(r.get("player_id", "")).strip()
-    if not pid_s:
-        continue
-    try:
-        pid = int(float(pid_s))
-    except ValueError:
-        continue
-    name = (r.get("player_name") or "").strip()
-    if name:
-        player_names[pid] = name
-    for key in ("from_club_id", "to_club_id"):
-        cid = str(r.get(key, "")).strip()
-        if cid in club_ids:
-            memberships[int(cid)].add(pid)
 
-    # App'te gösterilen yıl = oyuncunun kulübe geliş/imza yılı.
-    to_cid = str(r.get("to_club_id", "")).strip()
-    transfer_date = (r.get("transfer_date") or "").strip()
-    if to_cid in club_ids and len(transfer_date) >= 4 and transfer_date[:4].isdigit():
-        arrivals[int(to_cid)][pid].add(int(transfer_date[:4]))
+with transfers_path.open("r", encoding="utf-8-sig", errors="replace", newline="") as f:
+    for r in csv.DictReader(f):
+        transfer_count += 1
+        raw_id = (r.get("player_id") or "").strip()
+        if not raw_id:
+            continue
+        try:
+            pid = int(float(raw_id))
+        except ValueError:
+            continue
 
-players_json = {str(pid): name for pid, name in sorted(player_names.items())}
+        from_name = (r.get("from_team_name") or "").strip()
+        to_name = (r.get("to_team_name") or "").strip()
+        from_id = team_id(r.get("from_team_url") or "")
+        to_id = team_id(r.get("to_team_url") or "")
+
+        if valid_team(from_name, from_id):
+            club_names.setdefault(from_id, from_name)
+            memberships[from_id].add(pid)
+        if valid_team(to_name, to_id):
+            club_names.setdefault(to_id, to_name)
+            memberships[to_id].add(pid)
+            date = (r.get("date_unformatted") or "").strip()
+            if len(date) >= 4 and date[:4].isdigit():
+                arrivals[to_id][pid].add(int(date[:4]))
+
+# Sadece transfer geçmişinde gerçek bir oyuncu ile görünen kulüpleri bırak.
+clubs = [[cid, name] for cid, name in club_names.items() if memberships.get(cid)]
+clubs.sort(key=lambda x: x[1].casefold())
+
+players_json = {
+    str(pid): player_names.get(pid, f"Oyuncu #{pid}")
+    for pid in sorted({p for ids in memberships.values() for p in ids})
+}
 memberships_json = {
-    str(cid): sorted(pids, key=lambda pid: player_names.get(pid, "").casefold())
+    str(cid): sorted(pids)
     for cid, pids in sorted(memberships.items())
 }
 arrivals_json = {
@@ -88,13 +135,28 @@ payload = {
     "memberships": memberships_json,
     "arrivals": arrivals_json,
     "meta": {
-        "snapshot": "2026-07-06",
-        "source": "dcaribou / Transfermarkt datasets",
+        "source": "salimt/football-datasets · Transfermarkt-derived",
         "transferRows": transfer_count,
+        "playerProfiles": len(player_names),
+        "clubs": len(clubs),
     },
 }
 compact = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
-print(f"İndeks hazır: {len(player_names)} oyuncu, {transfer_count} transfer, {len(compact)/1024/1024:.2f} MiB JSON")
+print(f"İndeks hazır: {len(clubs)} kulüp, {len(players_json)} oyuncu, {transfer_count} transfer, {len(compact)/1024/1024:.2f} MiB JSON")
+
+# Tarihsel veri için basit smoke test: Galatasaray / Rangers kesişimini logla.
+def club_by_part(part):
+    part = part.casefold()
+    return next(((cid, name) for cid, name in clubs if part in name.casefold()), None)
+
+gs = club_by_part("galatasaray")
+rangers = club_by_part("rangers")
+if gs and rangers:
+    common = memberships[gs[0]] & memberships[rangers[0]]
+    names = sorted(player_names.get(pid, str(pid)) for pid in common)
+    print(f"SMOKE {gs[1]} × {rangers[1]}: {len(common)} ortak -> {', '.join(names[:20])}")
+else:
+    print("SMOKE: Galatasaray veya Rangers kulübü bulunamadı")
 
 template = (SRC / "index.template.html").read_text(encoding="utf-8")
 html = template.replace("/*__APP_DATA__*/", "window.APP_DATA=" + compact + ";")
