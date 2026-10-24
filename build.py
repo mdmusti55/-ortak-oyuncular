@@ -13,8 +13,13 @@ TMP.mkdir(exist_ok=True)
 
 PROFILE_URL = "https://raw.githubusercontent.com/salimt/football-datasets/main/datalake/transfermarkt/player_profiles/player_profiles.csv"
 TRANSFER_URL = "https://github.com/salimt/football-datasets/raw/refs/heads/main/datalake/transfermarkt/transfer_history/transfer_history.csv"
-HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; OrtakOyuncularBuilder/2.1)"}
-TEAM_RE = re.compile(r"/verein/(\d+)")
+HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; OrtakOyuncularBuilder/2.2)"}
+TEAM_PATTERNS = [
+    re.compile(r"/verein/(\d+)", re.I),
+    re.compile(r"/club/(\d+)", re.I),
+    re.compile(r"[?&](?:club_id|verein_id|id)=(\d+)", re.I),
+]
+ANY_NUM_RE = re.compile(r"(\d+)")
 NAME_ID_RE = re.compile(r"\s+\(\d+\)$")
 SPECIAL = {"retired", "without club", "career break", "unknown", "end of career", "retired from professional football"}
 
@@ -51,9 +56,27 @@ def resolve_source(local_path: Path, fallback_url: str, fallback_name: str):
     return target
 
 
-def team_id(url: str):
-    m = TEAM_RE.search(url or "")
+def team_id(value: str):
+    s = (value or "").strip()
+    if not s:
+        return None
+    if s.isdigit():
+        return int(s)
+    for p in TEAM_PATTERNS:
+        m = p.search(s)
+        if m:
+            return int(m.group(1))
+    # Son çare: URL'deki ilk sayısal parçayı takım ID'si kabul et.
+    m = ANY_NUM_RE.search(s)
     return int(m.group(1)) if m else None
+
+
+def first(row, *keys):
+    for k in keys:
+        v = row.get(k)
+        if v not in (None, ""):
+            return v
+    return ""
 
 
 def clean_player_name(name: str):
@@ -69,15 +92,17 @@ transfers_path = resolve_source(EXT / "transfer_history" / "transfer_history.csv
 
 player_names = {}
 with profiles_path.open("r", encoding="utf-8-sig", errors="replace", newline="") as f:
-    for r in csv.DictReader(f):
-        raw_id = (r.get("player_id") or "").strip()
+    reader = csv.DictReader(f)
+    print("profile fields:", reader.fieldnames)
+    for r in reader:
+        raw_id = first(r, "player_id", "playerId", "player_id_x").strip()
         if not raw_id:
             continue
         try:
             pid = int(float(raw_id))
         except ValueError:
             continue
-        name = clean_player_name(r.get("player_name"))
+        name = clean_player_name(first(r, "player_name", "name", "playerName"))
         if name:
             player_names[pid] = name
 print(f"{len(player_names)} oyuncu profili okundu")
@@ -86,30 +111,45 @@ club_names = {}
 memberships = defaultdict(set)
 arrivals = defaultdict(lambda: defaultdict(set))
 transfer_count = 0
+sample_printed = False
 
 with transfers_path.open("r", encoding="utf-8-sig", errors="replace", newline="") as f:
-    for r in csv.DictReader(f):
+    reader = csv.DictReader(f)
+    print("transfer fields:", reader.fieldnames)
+    for r in reader:
         transfer_count += 1
-        raw_id = (r.get("player_id") or "").strip()
+        if not sample_printed:
+            print("transfer sample:", {k: r.get(k) for k in (reader.fieldnames or [])[:12]})
+            sample_printed = True
+        raw_id = first(r, "player_id", "playerId", "player_id_x").strip()
         if not raw_id:
             continue
         try:
             pid = int(float(raw_id))
         except ValueError:
             continue
-        from_name = (r.get("from_team_name") or "").strip()
-        to_name = (r.get("to_team_name") or "").strip()
-        from_id = team_id(r.get("from_team_url") or "")
-        to_id = team_id(r.get("to_team_url") or "")
+
+        from_name = first(r, "from_team_name", "from_club_name", "from_team").strip()
+        to_name = first(r, "to_team_name", "to_club_name", "to_team").strip()
+        from_raw = first(r, "from_team_url", "from_club_url", "from_team_id", "from_club_id")
+        to_raw = first(r, "to_team_url", "to_club_url", "to_team_id", "to_club_id")
+        from_id = team_id(from_raw)
+        to_id = team_id(to_raw)
+
         if valid_team(from_name, from_id):
             club_names.setdefault(from_id, from_name)
             memberships[from_id].add(pid)
         if valid_team(to_name, to_id):
             club_names.setdefault(to_id, to_name)
             memberships[to_id].add(pid)
-            date = (r.get("date_unformatted") or "").strip()
+            date = first(r, "date_unformatted", "transfer_date", "date").strip()
+            year = None
             if len(date) >= 4 and date[:4].isdigit():
-                arrivals[to_id][pid].add(int(date[:4]))
+                year = int(date[:4])
+            elif len(date) >= 4 and date[-4:].isdigit():
+                year = int(date[-4:])
+            if year:
+                arrivals[to_id][pid].add(year)
 
 clubs = [[cid, name] for cid, name in club_names.items() if memberships.get(cid)]
 clubs.sort(key=lambda x: x[1].casefold())
@@ -117,6 +157,9 @@ all_player_ids = {p for ids in memberships.values() for p in ids}
 players_json = {str(pid): player_names.get(pid, f"Oyuncu #{pid}") for pid in sorted(all_player_ids)}
 memberships_json = {str(cid): sorted(pids) for cid, pids in sorted(memberships.items())}
 arrivals_json = {str(cid): {str(pid): sorted(years) for pid, years in sorted(players.items())} for cid, players in sorted(arrivals.items())}
+
+if transfer_count < 100000 or len(clubs) < 500 or len(players_json) < 20000:
+    raise RuntimeError(f"Historical index validation failed: {len(clubs)} clubs, {len(players_json)} players, {transfer_count} transfers")
 
 payload = {"clubs": clubs, "players": players_json, "memberships": memberships_json, "arrivals": arrivals_json, "meta": {"source": "salimt/football-datasets · Transfermarkt-derived", "transferRows": transfer_count, "playerProfiles": len(player_names), "clubs": len(clubs)}}
 compact = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
@@ -133,8 +176,10 @@ if gs and rangers:
     common = memberships[gs[0]] & memberships[rangers[0]]
     names = sorted(player_names.get(pid, str(pid)) for pid in common)
     print(f"SMOKE {gs[1]} × {rangers[1]}: {len(common)} ortak -> {', '.join(names[:30])}")
+    if not any("tugay" in n.casefold() for n in names):
+        raise RuntimeError("Smoke test failed: Tugay not found in Galatasaray × Rangers intersection")
 else:
-    print("SMOKE: Galatasaray veya Rangers kulübü bulunamadı")
+    raise RuntimeError("Smoke test failed: Galatasaray or Rangers club not found")
 
 template = (SRC / "index.template.html").read_text(encoding="utf-8")
 html = template.replace("/*__APP_DATA__*/", "window.APP_DATA=" + compact + ";")
