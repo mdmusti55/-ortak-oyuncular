@@ -24,6 +24,7 @@ jobs:
           lfs: true
           sparse-checkout: |
             datalake/transfermarkt/player_profiles/player_profiles.csv
+            datalake/transfermarkt/player_teammates_played_with/player_teammates_played_with.csv
             datalake/transfermarkt/transfer_history/transfer_history.csv
           sparse-checkout-cone-mode: false
       - uses: actions/setup-python@v5
