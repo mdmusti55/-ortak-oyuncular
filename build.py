@@ -14,9 +14,8 @@ TMP.mkdir(exist_ok=True)
 PROFILE_URL = "https://raw.githubusercontent.com/salimt/football-datasets/main/datalake/transfermarkt/player_profiles/player_profiles.csv"
 TRANSFER_URL = "https://github.com/salimt/football-datasets/raw/refs/heads/main/datalake/transfermarkt/transfer_history/transfer_history.csv"
 TEAMMATES_URL = "https://raw.githubusercontent.com/salimt/football-datasets/main/datalake/transfermarkt/player_teammates_played_with/player_teammates_played_with.csv"
-HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; OrtakOyuncularBuilder/2.4)"}
+HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; OrtakOyuncularBuilder/2.5)"}
 TEAM_PATTERNS = [re.compile(r"/verein/(\d+)", re.I), re.compile(r"/club/(\d+)", re.I), re.compile(r"[?&](?:club_id|verein_id|id)=(\d+)", re.I)]
-PLAYER_PATTERNS = [re.compile(r"/spieler/(\d+)", re.I), re.compile(r"/player/(\d+)", re.I)]
 ANY_NUM_RE = re.compile(r"(\d+)")
 NAME_ID_RE = re.compile(r"\s+\(\d+\)$")
 SPECIAL = {"retired", "without club", "career break", "unknown", "end of career", "retired from professional football"}
@@ -54,26 +53,28 @@ def resolve_source(local_path: Path, fallback_url: str, fallback_name: str):
     return target
 
 
-def extract_id(value: str, patterns):
+def extract_numeric_id(value: str):
+    s = (value or "").strip()
+    if not s:
+        return None
+    try:
+        return int(float(s))
+    except ValueError:
+        m = ANY_NUM_RE.search(s)
+        return int(m.group(1)) if m else None
+
+
+def team_id(value: str):
     s = (value or "").strip()
     if not s:
         return None
     if s.isdigit():
         return int(s)
-    for p in patterns:
+    for p in TEAM_PATTERNS:
         m = p.search(s)
         if m:
             return int(m.group(1))
-    m = ANY_NUM_RE.search(s)
-    return int(m.group(1)) if m else None
-
-
-def team_id(value: str):
-    return extract_id(value, TEAM_PATTERNS)
-
-
-def player_id_from_url(value: str):
-    return extract_id(value, PLAYER_PATTERNS)
+    return extract_numeric_id(s)
 
 
 def first(row, *keys):
@@ -99,27 +100,22 @@ transfers_path = resolve_source(EXT / "transfer_history" / "transfer_history.csv
 player_names = {}
 with profiles_path.open("r", encoding="utf-8-sig", errors="replace", newline="") as f:
     for r in csv.DictReader(f):
-        raw_id = first(r, "player_id", "playerId", "player_id_x").strip()
-        if not raw_id:
-            continue
-        try:
-            pid = int(float(raw_id))
-        except ValueError:
+        pid = extract_numeric_id(first(r, "player_id", "playerId", "player_id_x"))
+        if not pid:
             continue
         name = clean_player_name(first(r, "player_name", "name", "playerName"))
         if name:
             player_names[pid] = name
 print(f"{len(player_names)} oyuncu profili okundu")
 
-# Eski / emekli bazı oyuncular profile tablosunda yok, fakat takım arkadaşları tablosunda
-# adları ve Transfermarkt oyuncu ID'leri mevcut. Buradan isim haritasını tamamla.
+# Eski/emekli bazı oyuncular ana profil tablosunda yok; teammate tablosu ID + isim içeriyor.
 profile_names_before = len(player_names)
 with teammates_path.open("r", encoding="utf-8-sig", errors="replace", newline="") as f:
     reader = csv.DictReader(f)
     print("teammate fields:", reader.fieldnames)
     for r in reader:
-        other_id = player_id_from_url(first(r, "player_with_url", "teammate_url", "player_url"))
-        other_name = clean_player_name(first(r, "player_with_name", "teammate_name", "player_name"))
+        other_id = extract_numeric_id(first(r, "teammate_player_id", "player_with_id", "player_with_url", "teammate_url"))
+        other_name = clean_player_name(first(r, "teammate_player_name", "player_with_name", "teammate_name"))
         if other_id and other_name and other_id not in player_names:
             player_names[other_id] = other_name
 print(f"isim haritası tamamlandı: {profile_names_before} -> {len(player_names)}")
@@ -133,12 +129,8 @@ with transfers_path.open("r", encoding="utf-8-sig", errors="replace", newline=""
     print("transfer fields:", reader.fieldnames)
     for r in reader:
         transfer_count += 1
-        raw_id = first(r, "player_id", "playerId", "player_id_x").strip()
-        if not raw_id:
-            continue
-        try:
-            pid = int(float(raw_id))
-        except ValueError:
+        pid = extract_numeric_id(first(r, "player_id", "playerId", "player_id_x"))
+        if not pid:
             continue
         from_name = first(r, "from_team_name", "from_club_name", "from_team").strip()
         to_name = first(r, "to_team_name", "to_club_name", "to_team").strip()
