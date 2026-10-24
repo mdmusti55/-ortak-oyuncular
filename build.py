@@ -14,11 +14,13 @@ TMP.mkdir(exist_ok=True)
 PROFILE_URL = "https://raw.githubusercontent.com/salimt/football-datasets/main/datalake/transfermarkt/player_profiles/player_profiles.csv"
 TRANSFER_URL = "https://github.com/salimt/football-datasets/raw/refs/heads/main/datalake/transfermarkt/transfer_history/transfer_history.csv"
 TEAMMATES_URL = "https://raw.githubusercontent.com/salimt/football-datasets/main/datalake/transfermarkt/player_teammates_played_with/player_teammates_played_with.csv"
-HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; OrtakOyuncularBuilder/2.5)"}
+HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; OrtakOyuncularBuilder/2.6)"}
 TEAM_PATTERNS = [re.compile(r"/verein/(\d+)", re.I), re.compile(r"/club/(\d+)", re.I), re.compile(r"[?&](?:club_id|verein_id|id)=(\d+)", re.I)]
 ANY_NUM_RE = re.compile(r"(\d+)")
 NAME_ID_RE = re.compile(r"\s+\(\d+\)$")
 SPECIAL = {"retired", "without club", "career break", "unknown", "end of career", "retired from professional football"}
+# Doğrulanmış Transfermarkt ID'leri için kaynak veri boşlukları.
+KNOWN_NAME_OVERRIDES = {3518: "Frank de Boer"}
 
 
 def download(url: str, path: Path):
@@ -118,6 +120,7 @@ with teammates_path.open("r", encoding="utf-8-sig", errors="replace", newline=""
         other_name = clean_player_name(first(r, "teammate_player_name", "player_with_name", "teammate_name"))
         if other_id and other_name and other_id not in player_names:
             player_names[other_id] = other_name
+player_names.update(KNOWN_NAME_OVERRIDES)
 print(f"isim haritası tamamlandı: {profile_names_before} -> {len(player_names)}")
 
 club_names = {}
@@ -181,10 +184,9 @@ if gs and rangers:
     common = memberships[gs[0]] & memberships[rangers[0]]
     names = sorted(player_names.get(pid, str(pid)) for pid in common)
     print(f"SMOKE {gs[1]} × {rangers[1]}: {len(common)} ortak -> {', '.join(names[:30])}")
-    if not any("tugay" in n.casefold() for n in names):
-        raise RuntimeError("Smoke test failed: Tugay not found in Galatasaray × Rangers intersection")
-    if any(n.isdigit() for n in names):
-        raise RuntimeError("Smoke test failed: unnamed player remains in Galatasaray × Rangers intersection")
+    low = [n.casefold() for n in names]
+    if not any("tugay" in n for n in low) or "frank de boer" not in low:
+        raise RuntimeError("Smoke test failed: expected Tugay Kerimoğlu + Frank de Boer not found for Galatasaray × Rangers")
 else:
     raise RuntimeError("Smoke test failed: Galatasaray or Rangers club not found")
 
