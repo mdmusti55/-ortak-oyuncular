@@ -7,30 +7,25 @@ ROOT = Path(__file__).resolve().parent
 SRC = ROOT / "src"
 DIST = ROOT / "dist"
 TMP = ROOT / ".build-cache"
+EXT = ROOT / "external-football" / "datalake" / "transfermarkt"
 DIST.mkdir(exist_ok=True)
 TMP.mkdir(exist_ok=True)
 
-PROFILE_URL = "https://media.githubusercontent.com/media/salimt/football-datasets/main/datalake/transfermarkt/player_profiles/player_profiles.csv"
-TRANSFER_URL = "https://media.githubusercontent.com/media/salimt/football-datasets/main/datalake/transfermarkt/transfer_history/transfer_history.csv"
-HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; OrtakOyuncularBuilder/2.0)"}
+PROFILE_URL = "https://raw.githubusercontent.com/salimt/football-datasets/main/datalake/transfermarkt/player_profiles/player_profiles.csv"
+TRANSFER_URL = "https://github.com/salimt/football-datasets/raw/refs/heads/main/datalake/transfermarkt/transfer_history/transfer_history.csv"
+HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; OrtakOyuncularBuilder/2.1)"}
 TEAM_RE = re.compile(r"/verein/(\d+)")
 NAME_ID_RE = re.compile(r"\s+\(\d+\)$")
-SPECIAL = {
-    "retired", "without club", "career break", "unknown", "end of career",
-    "retired from professional football"
-}
+SPECIAL = {"retired", "without club", "career break", "unknown", "end of career", "retired from professional football"}
 
 
 def download(url: str, path: Path):
-    if path.exists() and path.stat().st_size > 1000:
-        print(f"cache: {path.name} ({path.stat().st_size/1024/1024:.1f} MiB)")
-        return
     last = None
     for attempt in range(4):
         try:
             print(f"indiriliyor: {path.name}")
             req = urllib.request.Request(url, headers=HEADERS)
-            with urllib.request.urlopen(req, timeout=180) as r, path.open("wb") as f:
+            with urllib.request.urlopen(req, timeout=240) as r, path.open("wb") as f:
                 while True:
                     chunk = r.read(1024 * 1024)
                     if not chunk:
@@ -47,24 +42,30 @@ def download(url: str, path: Path):
     raise RuntimeError(f"{url} indirilemedi: {last}")
 
 
+def resolve_source(local_path: Path, fallback_url: str, fallback_name: str):
+    if local_path.exists() and local_path.stat().st_size > 1000:
+        print(f"checkout: {local_path} ({local_path.stat().st_size/1024/1024:.1f} MiB)")
+        return local_path
+    target = TMP / fallback_name
+    download(fallback_url, target)
+    return target
+
+
 def team_id(url: str):
     m = TEAM_RE.search(url or "")
     return int(m.group(1)) if m else None
 
 
 def clean_player_name(name: str):
-    name = (name or "").strip()
-    return NAME_ID_RE.sub("", name)
+    return NAME_ID_RE.sub("", (name or "").strip())
 
 
 def valid_team(name: str, tid):
     return bool(tid and name and name.strip().casefold() not in SPECIAL)
 
 
-profiles_path = TMP / "player_profiles.csv"
-transfers_path = TMP / "transfer_history.csv"
-download(PROFILE_URL, profiles_path)
-download(TRANSFER_URL, transfers_path)
+profiles_path = resolve_source(EXT / "player_profiles" / "player_profiles.csv", PROFILE_URL, "player_profiles.csv")
+transfers_path = resolve_source(EXT / "transfer_history" / "transfer_history.csv", TRANSFER_URL, "transfer_history.csv")
 
 player_names = {}
 with profiles_path.open("r", encoding="utf-8-sig", errors="replace", newline="") as f:
@@ -96,12 +97,10 @@ with transfers_path.open("r", encoding="utf-8-sig", errors="replace", newline=""
             pid = int(float(raw_id))
         except ValueError:
             continue
-
         from_name = (r.get("from_team_name") or "").strip()
         to_name = (r.get("to_team_name") or "").strip()
         from_id = team_id(r.get("from_team_url") or "")
         to_id = team_id(r.get("to_team_url") or "")
-
         if valid_team(from_name, from_id):
             club_names.setdefault(from_id, from_name)
             memberships[from_id].add(pid)
@@ -112,39 +111,18 @@ with transfers_path.open("r", encoding="utf-8-sig", errors="replace", newline=""
             if len(date) >= 4 and date[:4].isdigit():
                 arrivals[to_id][pid].add(int(date[:4]))
 
-# Sadece transfer geçmişinde gerçek bir oyuncu ile görünen kulüpleri bırak.
 clubs = [[cid, name] for cid, name in club_names.items() if memberships.get(cid)]
 clubs.sort(key=lambda x: x[1].casefold())
+all_player_ids = {p for ids in memberships.values() for p in ids}
+players_json = {str(pid): player_names.get(pid, f"Oyuncu #{pid}") for pid in sorted(all_player_ids)}
+memberships_json = {str(cid): sorted(pids) for cid, pids in sorted(memberships.items())}
+arrivals_json = {str(cid): {str(pid): sorted(years) for pid, years in sorted(players.items())} for cid, players in sorted(arrivals.items())}
 
-players_json = {
-    str(pid): player_names.get(pid, f"Oyuncu #{pid}")
-    for pid in sorted({p for ids in memberships.values() for p in ids})
-}
-memberships_json = {
-    str(cid): sorted(pids)
-    for cid, pids in sorted(memberships.items())
-}
-arrivals_json = {
-    str(cid): {str(pid): sorted(years) for pid, years in sorted(players.items())}
-    for cid, players in sorted(arrivals.items())
-}
-
-payload = {
-    "clubs": clubs,
-    "players": players_json,
-    "memberships": memberships_json,
-    "arrivals": arrivals_json,
-    "meta": {
-        "source": "salimt/football-datasets · Transfermarkt-derived",
-        "transferRows": transfer_count,
-        "playerProfiles": len(player_names),
-        "clubs": len(clubs),
-    },
-}
+payload = {"clubs": clubs, "players": players_json, "memberships": memberships_json, "arrivals": arrivals_json, "meta": {"source": "salimt/football-datasets · Transfermarkt-derived", "transferRows": transfer_count, "playerProfiles": len(player_names), "clubs": len(clubs)}}
 compact = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
 print(f"İndeks hazır: {len(clubs)} kulüp, {len(players_json)} oyuncu, {transfer_count} transfer, {len(compact)/1024/1024:.2f} MiB JSON")
 
-# Tarihsel veri için basit smoke test: Galatasaray / Rangers kesişimini logla.
+
 def club_by_part(part):
     part = part.casefold()
     return next(((cid, name) for cid, name in clubs if part in name.casefold()), None)
@@ -154,15 +132,13 @@ rangers = club_by_part("rangers")
 if gs and rangers:
     common = memberships[gs[0]] & memberships[rangers[0]]
     names = sorted(player_names.get(pid, str(pid)) for pid in common)
-    print(f"SMOKE {gs[1]} × {rangers[1]}: {len(common)} ortak -> {', '.join(names[:20])}")
+    print(f"SMOKE {gs[1]} × {rangers[1]}: {len(common)} ortak -> {', '.join(names[:30])}")
 else:
     print("SMOKE: Galatasaray veya Rangers kulübü bulunamadı")
 
 template = (SRC / "index.template.html").read_text(encoding="utf-8")
 html = template.replace("/*__APP_DATA__*/", "window.APP_DATA=" + compact + ";")
 (DIST / "index.html").write_text(html, encoding="utf-8")
-
 for name in ("manifest.webmanifest", "sw.js", "icon.svg"):
     (DIST / name).write_bytes((SRC / name).read_bytes())
-
 print("dist/ hazır")
