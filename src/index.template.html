@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0b0d10">
+<meta name="theme-color" content="#080a0e">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Ortak Oyuncular">
@@ -11,107 +11,52 @@
 <link rel="apple-touch-icon" href="./icon.svg">
 <title>Ortak Oyuncular</title>
 <style>
-:root{--bg:#0b0d10;--card:#15191f;--card2:#101318;--text:#f4f7fb;--muted:#9aa4b2;--line:#252b34;--accent:#f0c84b;--accent2:#d9b13a}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,Segoe UI,Roboto,Arial,sans-serif}body{min-height:100vh;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}button,input{font:inherit}.wrap{max-width:720px;margin:0 auto;padding:18px 14px 34px}.top{padding:2px 2px 16px}.eyebrow{font-size:12px;color:var(--accent);font-weight:800;letter-spacing:.7px;text-transform:uppercase}.top h1{font-size:30px;line-height:1.05;letter-spacing:-.8px;margin:5px 0 7px}.top p{margin:0;color:var(--muted);font-size:14px;line-height:1.45}.grid{display:grid;gap:12px}.clubCard{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:14px;display:grid;grid-template-columns:66px minmax(0,1fr);gap:13px;align-items:center}.badge{width:66px;height:66px;border-radius:16px;background:white;display:grid;place-items:center;overflow:hidden}.badge img{width:58px;height:58px;object-fit:contain}.badge .letters{display:none;color:#111;font-weight:900;font-size:16px}.label{display:block;color:var(--muted);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.65px;margin:0 0 6px}.searchWrap{position:relative}.clubInput{width:100%;background:var(--card2);border:1px solid var(--line);border-radius:13px;color:var(--text);padding:13px 12px;font-size:16px;outline:none}.clubInput:focus{border-color:#667486}.suggestions{display:none;position:absolute;z-index:10;left:0;right:0;top:calc(100% + 6px);background:#181d24;border:1px solid #323945;border-radius:14px;overflow:hidden;box-shadow:0 18px 40px #0009;max-height:300px;overflow-y:auto}.suggestions.open{display:block}.sug{width:100%;border:0;border-bottom:1px solid #272e38;background:transparent;color:var(--text);padding:12px;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:10px}.sug:last-child{border-bottom:0}.sug:active{background:#222933}.sugName{font-weight:750}.sugCode{color:var(--muted);font-size:12px}.actions{display:grid;grid-template-columns:54px 1fr;gap:10px;margin:14px 0}.btn{border:0;border-radius:15px;min-height:50px;font-weight:900;font-size:16px}.swap{background:var(--card);color:var(--text);border:1px solid var(--line);font-size:22px}.find{background:var(--accent);color:#171309}.find:active{background:var(--accent2)}.find:disabled{opacity:.42}.results{display:none;background:var(--card);border:1px solid var(--line);border-radius:20px;overflow:hidden;margin-top:10px}.results.show{display:block}.rHead{padding:16px;border-bottom:1px solid var(--line)}.rTitle{font-size:19px;font-weight:950}.rPair{font-size:12px;color:var(--muted);margin-top:4px}.players{max-height:58vh;overflow:auto;-webkit-overflow-scrolling:touch}.player{padding:13px 16px;border-bottom:1px solid var(--line);display:flex;align-items:baseline;justify-content:space-between;gap:12px}.playerName{font-size:16px;font-weight:760;min-width:0}.years{font-size:12px;color:var(--muted);font-weight:700;text-align:right;white-space:nowrap}.player:last-child{border-bottom:0}.empty{padding:28px 16px;text-align:center;color:var(--muted)}.foot{font-size:11px;color:#707986;text-align:center;line-height:1.45;padding:16px 4px 0}.selectedName{font-size:12px;color:var(--muted);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}@media(min-width:620px){.grid{grid-template-columns:1fr 1fr}}
+:root{--bg:#080a0e;--panel:#10141a;--panel2:#151a22;--text:#f6f7f9;--muted:#8f98a8;--line:#222936;--accent:#f2c94c;--accentDark:#171309;--chip:#1a202a}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,Segoe UI,Roboto,Arial,sans-serif}body{min-height:100vh;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}button,input{font:inherit}.app{max-width:680px;margin:0 auto;padding:22px 16px 40px}.hero{padding:4px 2px 18px}.heroTop{display:flex;align-items:center;gap:10px}.mark{width:34px;height:34px;border-radius:11px;background:var(--accent);display:grid;place-items:center;color:var(--accentDark);font-size:17px;font-weight:950}.hero h1{margin:0;font-size:28px;letter-spacing:-.7px}.hero p{margin:8px 0 0;color:var(--muted);font-size:14px;line-height:1.45}
+.pickerPanel{background:var(--panel);border:1px solid var(--line);border-radius:24px;padding:14px;box-shadow:0 16px 45px #0004}.clubPicker{display:grid;grid-template-columns:58px minmax(0,1fr);gap:12px;align-items:center}.clubLogo{width:58px;height:58px;background:#fff;border-radius:17px;display:grid;place-items:center;overflow:hidden}.clubLogo img{width:50px;height:50px;object-fit:contain}.clubLogo span{display:none;color:#111;font-size:15px;font-weight:900}.pickerLabel{display:block;font-size:11px;color:var(--muted);font-weight:850;letter-spacing:.7px;text-transform:uppercase;margin:0 0 6px}.searchWrap{position:relative}.clubInput{width:100%;height:45px;border:1px solid #293140;background:#0d1117;color:var(--text);border-radius:13px;padding:0 13px;font-size:16px;outline:none}.clubInput:focus{border-color:#596779;box-shadow:0 0 0 3px #59677922}.selected{color:var(--muted);font-size:12px;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.divider{height:18px;position:relative;margin:5px 0}.divider:before{content:"";position:absolute;left:70px;right:0;top:9px;height:1px;background:var(--line)}.swap{position:absolute;left:13px;top:-10px;width:42px;height:42px;border-radius:13px;border:1px solid var(--line);background:#151a21;color:var(--text);font-size:21px;z-index:2}.swap:active{transform:scale(.97)}
+.suggestions{display:none;position:absolute;z-index:30;left:0;right:0;top:calc(100% + 7px);background:#171c24;border:1px solid #303846;border-radius:16px;overflow:hidden;box-shadow:0 20px 55px #000c;max-height:330px;overflow-y:auto}.suggestions.open{display:block}.sug{width:100%;border:0;border-bottom:1px solid #252c37;background:transparent;color:var(--text);padding:10px 12px;text-align:left;display:grid;grid-template-columns:38px minmax(0,1fr);gap:10px;align-items:center}.sug:last-child{border-bottom:0}.sug:active{background:#202733}.sugLogo{width:38px;height:38px;border-radius:10px;background:white;object-fit:contain;padding:3px}.sugName{font-size:15px;font-weight:760;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.find{width:100%;height:54px;border:0;border-radius:17px;background:var(--accent);color:var(--accentDark);font-size:17px;font-weight:950;margin:14px 0 18px}.find:disabled{opacity:.38}.find:active:not(:disabled){transform:scale(.992)}
+.results{display:none}.results.show{display:block}.resultHead{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;padding:4px 2px 12px}.count{font-size:23px;font-weight:950;letter-spacing:-.4px}.pair{margin-top:4px;color:var(--muted);font-size:13px}.dataBadge{font-size:11px;color:#b9c0cb;background:#121720;border:1px solid var(--line);border-radius:999px;padding:6px 9px;white-space:nowrap}.players{display:grid;gap:10px}.playerCard{background:var(--panel);border:1px solid var(--line);border-radius:19px;padding:15px}.playerName{font-size:19px;font-weight:900;letter-spacing:-.2px;margin-bottom:12px}.clubRows{display:grid;gap:7px}.clubRow{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:9px;align-items:center;background:#0d1117;border:1px solid #1e2530;border-radius:13px;padding:8px 9px}.miniLogo{width:32px;height:32px;border-radius:9px;background:#fff;object-fit:contain;padding:3px}.clubName{font-size:13px;font-weight:760;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.yearBox{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px;max-width:160px}.year{background:var(--chip);border:1px solid #2b3442;color:#dce1e8;border-radius:8px;padding:4px 6px;font-size:12px;font-weight:800;line-height:1}.year.none{color:#707988}.empty{background:var(--panel);border:1px solid var(--line);border-radius:19px;padding:30px 18px;text-align:center;color:var(--muted)}.foot{padding:18px 4px 0;color:#687180;text-align:center;font-size:11px;line-height:1.5}
+@media(min-width:620px){.pickerPanel{display:grid;grid-template-columns:1fr 56px 1fr;align-items:center;gap:8px}.divider{height:100%;margin:0}.divider:before{left:50%;right:auto;top:0;bottom:0;width:1px;height:auto}.swap{left:7px;top:50%;transform:translateY(-50%)}.swap:active{transform:translateY(-50%) scale(.97)}}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header class="top">
-    <div class="eyebrow">Football history</div>
-    <h1>Ortak Oyuncular</h1>
-    <p>İki kulüp seç. Her ikisinin transfer geçmişinde bulunan oyuncuları anında gör.</p>
-  </header>
-
-  <main>
-    <div class="grid">
-      <section class="clubCard">
-        <div class="badge"><img id="logoA" alt=""><span class="letters" id="lettersA">A</span></div>
-        <div>
-          <span class="label">Kulüp 1</span>
-          <div class="searchWrap"><input id="inputA" class="clubInput" placeholder="Kulüp ara…" autocomplete="off" autocorrect="off" spellcheck="false"><div id="suggestA" class="suggestions"></div></div>
-          <div id="selectedA" class="selectedName">Seçilmedi</div>
-        </div>
-      </section>
-      <section class="clubCard">
-        <div class="badge"><img id="logoB" alt=""><span class="letters" id="lettersB">B</span></div>
-        <div>
-          <span class="label">Kulüp 2</span>
-          <div class="searchWrap"><input id="inputB" class="clubInput" placeholder="Kulüp ara…" autocomplete="off" autocorrect="off" spellcheck="false"><div id="suggestB" class="suggestions"></div></div>
-          <div id="selectedB" class="selectedName">Seçilmedi</div>
-        </div>
-      </section>
-    </div>
-
-    <div class="actions"><button id="swap" class="btn swap" aria-label="Kulüpleri değiştir">⇄</button><button id="find" class="btn find" disabled>Ortak oyuncuları bul</button></div>
-
-    <section id="results" class="results">
-      <div class="rHead"><div id="resultTitle" class="rTitle"></div><div id="resultPair" class="rPair"></div></div>
-      <div id="players" class="players"></div>
-    </section>
-  </main>
-  <footer class="foot">Kaynak: dcaribou / Transfermarkt datasets · Snapshot: 6 Temmuz 2026 · Maça çıkma şartı yok; transfer geçmişi esas alınır.</footer>
+<div class="app">
+<header class="hero"><div class="heroTop"><div class="mark">↔</div><h1>Ortak Oyuncular</h1></div><p>İki kulüp seç; transfer geçmişinde ikisiyle de bağlantısı olan oyuncuları bul.</p></header>
+<main>
+<section class="pickerPanel">
+  <div class="clubPicker"><div class="clubLogo"><img id="logoA" alt=""><span id="lettersA">1</span></div><div><span class="pickerLabel">Kulüp 1</span><div class="searchWrap"><input id="inputA" class="clubInput" placeholder="Kulüp yaz…" autocomplete="off" autocorrect="off" spellcheck="false"><div id="suggestA" class="suggestions"></div></div><div id="selectedA" class="selected">Seçilmedi</div></div></div>
+  <div class="divider"><button id="swap" class="swap" aria-label="Kulüpleri değiştir">⇄</button></div>
+  <div class="clubPicker"><div class="clubLogo"><img id="logoB" alt=""><span id="lettersB">2</span></div><div><span class="pickerLabel">Kulüp 2</span><div class="searchWrap"><input id="inputB" class="clubInput" placeholder="Kulüp yaz…" autocomplete="off" autocorrect="off" spellcheck="false"><div id="suggestB" class="suggestions"></div></div><div id="selectedB" class="selected">Seçilmedi</div></div></div>
+</section>
+<button id="find" class="find" disabled>Ortak oyuncuları bul</button>
+<section id="results" class="results"><div class="resultHead"><div><div id="resultTitle" class="count"></div><div id="resultPair" class="pair"></div></div><div id="dataBadge" class="dataBadge"></div></div><div id="players" class="players"></div></section>
+</main>
+<footer id="foot" class="foot"></footer>
 </div>
 <script>/*__APP_DATA__*/</script>
 <script>
 (()=>{
-  const D=window.APP_DATA;
-  const clubs=D.clubs.map(([id,name,code])=>({id,name,code,search:(name+' '+code).toLocaleLowerCase('tr-TR')}));
-  let a=null,b=null;
-  const $=id=>document.getElementById(id);
-  const inputA=$('inputA'),inputB=$('inputB'),suggestA=$('suggestA'),suggestB=$('suggestB');
-  const find=$('find'),results=$('results'),players=$('players');
-  const collator=new Intl.Collator('tr',{sensitivity:'base'});
-  const logo=id=>`https://tmssl.akamaized.net/images/wappen/head/${id}.png`;
-
-  function updateButton(){find.disabled=!(a&&b&&a.id!==b.id)}
-  function renderClub(which,c){
-    const img=$(which==='A'?'logoA':'logoB'), letters=$(which==='A'?'lettersA':'lettersB'), selected=$(which==='A'?'selectedA':'selectedB');
-    if(!c){img.removeAttribute('src');img.style.display='none';letters.style.display='block';letters.textContent=which;selected.textContent='Seçilmedi';return}
-    selected.textContent=c.name;img.style.display='block';letters.style.display='none';img.src=logo(c.id);img.alt=c.name;
-    img.onerror=()=>{img.style.display='none';letters.style.display='block';letters.textContent=c.name.slice(0,2).toUpperCase()};
-  }
-  function choose(which,c){
-    if(which==='A'){a=c;inputA.value=c.name;suggestA.classList.remove('open');renderClub('A',c)}else{b=c;inputB.value=c.name;suggestB.classList.remove('open');renderClub('B',c)}
-    results.classList.remove('show'); updateButton();
-  }
-  function showSuggestions(which){
-    const input=which==='A'?inputA:inputB, box=which==='A'?suggestA:suggestB;
-    const q=input.value.trim().toLocaleLowerCase('tr-TR');
-    const matches=(q?clubs.filter(c=>c.search.includes(q)):clubs).slice(0,10);
-    box.innerHTML='';
-    for(const c of matches){const btn=document.createElement('button');btn.className='sug';btn.type='button';btn.innerHTML=`<span class="sugName"></span><span class="sugCode"></span>`;btn.querySelector('.sugName').textContent=c.name;btn.querySelector('.sugCode').textContent=c.code||'';btn.addEventListener('click',()=>choose(which,c));box.appendChild(btn)}
-    box.classList.toggle('open',matches.length>0);
-  }
-  for(const [input,which] of [[inputA,'A'],[inputB,'B']]){
-    input.addEventListener('focus',()=>showSuggestions(which));
-    input.addEventListener('input',()=>{if(which==='A'){a=null;renderClub('A',null)}else{b=null;renderClub('B',null)};updateButton();showSuggestions(which)});
-  }
-  document.addEventListener('click',e=>{if(!e.target.closest('.searchWrap')){suggestA.classList.remove('open');suggestB.classList.remove('open')}});
-  $('swap').addEventListener('click',()=>{const x=a;a=b;b=x;inputA.value=a?a.name:'';inputB.value=b?b.name:'';renderClub('A',a);renderClub('B',b);results.classList.remove('show');updateButton()});
-  find.addEventListener('click',()=>{
-    if(!a||!b||a.id===b.id)return;
-    const A=D.memberships[String(a.id)]||[], B=D.memberships[String(b.id)]||[];
-    const small=A.length<=B.length?A:B, large=A.length<=B.length?B:A, largeSet=new Set(large);
-    const common=small.filter(pid=>largeSet.has(pid)).map(pid=>({pid,name:D.players[String(pid)]||String(pid)})).sort((x,y)=>collator.compare(x.name,y.name));
-    $('resultTitle').textContent=`${common.length} ortak oyuncu`;$('resultPair').textContent=`${a.name} × ${b.name}`;players.innerHTML='';
-    if(!common.length){players.innerHTML='<div class="empty">Ortak oyuncu bulunamadı.</div>'}else{
-      const f=document.createDocumentFragment();
-      for(const item of common){
-        const ya=((D.arrivals[String(a.id)]||{})[String(item.pid)]||[]);
-        const yb=((D.arrivals[String(b.id)]||{})[String(item.pid)]||[]);
-        const d=document.createElement('div');d.className='player';
-        const n=document.createElement('div');n.className='playerName';n.textContent=item.name;
-        const y=document.createElement('div');y.className='years';
-        y.textContent=`${a.code||a.name}: ${ya.length?ya.join(', '):'—'} · ${b.code||b.name}: ${yb.length?yb.join(', '):'—'}`;
-        d.append(n,y);f.appendChild(d);
-      }
-      players.appendChild(f)
-    }
-    results.classList.add('show');
-  });
-  renderClub('A',null);renderClub('B',null);
-  if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js').catch(()=>{})}
+ const D=window.APP_DATA,$=id=>document.getElementById(id),logo=id=>`https://tmssl.akamaized.net/images/wappen/head/${id}.png`;
+ const norm=s=>(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('tr-TR').replace(/[^a-z0-9çğıöşü ]/g,' ').replace(/\s+/g,' ').trim();
+ const initials=s=>norm(s).split(' ').filter(Boolean).map(x=>x[0]).join('');
+ const clubs=D.clubs.map(([id,name])=>({id,name,n:norm(name),i:initials(name)}));
+ const collator=new Intl.Collator('tr',{sensitivity:'base'});let a=null,b=null;
+ const inputA=$('inputA'),inputB=$('inputB'),suggestA=$('suggestA'),suggestB=$('suggestB'),find=$('find'),results=$('results'),players=$('players');
+ $('dataBadge').textContent=`${(D.meta.transferRows||0).toLocaleString('tr-TR')} transfer`;
+ $('foot').textContent=`Kaynak: ${D.meta.source} · Maça çıkma şartı yok; transfer geçmişi esas alınır.`;
+ function updateButton(){find.disabled=!(a&&b&&a.id!==b.id)}
+ function renderClub(which,c){const img=$(which==='A'?'logoA':'logoB'),letters=$(which==='A'?'lettersA':'lettersB'),sel=$(which==='A'?'selectedA':'selectedB');if(!c){img.removeAttribute('src');img.style.display='none';letters.style.display='block';letters.textContent=which==='A'?'1':'2';sel.textContent='Seçilmedi';return}sel.textContent=c.name;img.style.display='block';letters.style.display='none';img.src=logo(c.id);img.alt=c.name;img.onerror=()=>{img.style.display='none';letters.style.display='block';letters.textContent=c.name.slice(0,2).toUpperCase()}}
+ function choose(which,c){if(which==='A'){a=c;inputA.value=c.name;suggestA.classList.remove('open');renderClub('A',c)}else{b=c;inputB.value=c.name;suggestB.classList.remove('open');renderClub('B',c)}results.classList.remove('show');updateButton()}
+ function matches(q){if(!q)return clubs.slice(0,10);return clubs.map(c=>{let score=99;if(c.n.startsWith(q))score=0;else if(c.n.split(' ').some(x=>x.startsWith(q)))score=1;else if(c.n.includes(q))score=2;else if(c.i.startsWith(q))score=3;return {c,score}}).filter(x=>x.score<99).sort((x,y)=>x.score-y.score||collator.compare(x.c.name,y.c.name)).slice(0,10).map(x=>x.c)}
+ function showSuggestions(which){const input=which==='A'?inputA:inputB,box=which==='A'?suggestA:suggestB,q=norm(input.value),list=matches(q);box.innerHTML='';for(const c of list){const btn=document.createElement('button');btn.type='button';btn.className='sug';const im=document.createElement('img');im.className='sugLogo';im.src=logo(c.id);im.alt='';im.onerror=()=>im.remove();const n=document.createElement('div');n.className='sugName';n.textContent=c.name;btn.append(im,n);btn.addEventListener('click',()=>choose(which,c));box.appendChild(btn)}box.classList.toggle('open',list.length>0)}
+ for(const [input,which] of [[inputA,'A'],[inputB,'B']]){input.addEventListener('focus',()=>showSuggestions(which));input.addEventListener('input',()=>{if(which==='A'){a=null;renderClub('A',null)}else{b=null;renderClub('B',null)}updateButton();results.classList.remove('show');showSuggestions(which)})}
+ document.addEventListener('click',e=>{if(!e.target.closest('.searchWrap')){suggestA.classList.remove('open');suggestB.classList.remove('open')}});
+ $('swap').addEventListener('click',()=>{const x=a;a=b;b=x;inputA.value=a?a.name:'';inputB.value=b?b.name:'';renderClub('A',a);renderClub('B',b);results.classList.remove('show');updateButton()});
+ function yearPills(years){const box=document.createElement('div');box.className='yearBox';if(!years.length){const p=document.createElement('span');p.className='year none';p.textContent='—';box.appendChild(p)}else for(const v of years){const p=document.createElement('span');p.className='year';p.textContent=v;box.appendChild(p)}return box}
+ function clubRow(c,years){const r=document.createElement('div');r.className='clubRow';const im=document.createElement('img');im.className='miniLogo';im.src=logo(c.id);im.alt='';const n=document.createElement('div');n.className='clubName';n.textContent=c.name;r.append(im,n,yearPills(years));return r}
+ find.addEventListener('click',()=>{if(!a||!b||a.id===b.id)return;const A=D.memberships[String(a.id)]||[],B=D.memberships[String(b.id)]||[],small=A.length<=B.length?A:B,large=A.length<=B.length?B:A,set=new Set(large),common=small.filter(pid=>set.has(pid)).map(pid=>({pid,name:D.players[String(pid)]||`Oyuncu #${pid}`})).sort((x,y)=>collator.compare(x.name,y.name));$('resultTitle').textContent=`${common.length} ortak oyuncu`;$('resultPair').textContent=`${a.name} × ${b.name}`;players.innerHTML='';if(!common.length){players.innerHTML='<div class="empty">Bu iki kulüp arasında ortak transfer geçmişi bulunamadı.</div>'}else{const f=document.createDocumentFragment();for(const item of common){const ya=((D.arrivals[String(a.id)]||{})[String(item.pid)]||[]),yb=((D.arrivals[String(b.id)]||{})[String(item.pid)]||[]),card=document.createElement('article');card.className='playerCard';const name=document.createElement('div');name.className='playerName';name.textContent=item.name;const rows=document.createElement('div');rows.className='clubRows';rows.append(clubRow(a,ya),clubRow(b,yb));card.append(name,rows);f.appendChild(card)}players.appendChild(f)}results.classList.add('show');results.scrollIntoView({behavior:'smooth',block:'start'})});
+ renderClub('A',null);renderClub('B',null);if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('./sw.js').catch(()=>{});
 })();
 </script>
 </body>
