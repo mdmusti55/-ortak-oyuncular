@@ -13,8 +13,10 @@ TMP.mkdir(exist_ok=True)
 
 PROFILE_URL = "https://raw.githubusercontent.com/salimt/football-datasets/main/datalake/transfermarkt/player_profiles/player_profiles.csv"
 TRANSFER_URL = "https://github.com/salimt/football-datasets/raw/refs/heads/main/datalake/transfermarkt/transfer_history/transfer_history.csv"
-HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; OrtakOyuncularBuilder/2.3)"}
+TEAMMATES_URL = "https://raw.githubusercontent.com/salimt/football-datasets/main/datalake/transfermarkt/player_teammates_played_with/player_teammates_played_with.csv"
+HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; OrtakOyuncularBuilder/2.4)"}
 TEAM_PATTERNS = [re.compile(r"/verein/(\d+)", re.I), re.compile(r"/club/(\d+)", re.I), re.compile(r"[?&](?:club_id|verein_id|id)=(\d+)", re.I)]
+PLAYER_PATTERNS = [re.compile(r"/spieler/(\d+)", re.I), re.compile(r"/player/(\d+)", re.I)]
 ANY_NUM_RE = re.compile(r"(\d+)")
 NAME_ID_RE = re.compile(r"\s+\(\d+\)$")
 SPECIAL = {"retired", "without club", "career break", "unknown", "end of career", "retired from professional football"}
@@ -52,18 +54,26 @@ def resolve_source(local_path: Path, fallback_url: str, fallback_name: str):
     return target
 
 
-def team_id(value: str):
+def extract_id(value: str, patterns):
     s = (value or "").strip()
     if not s:
         return None
     if s.isdigit():
         return int(s)
-    for p in TEAM_PATTERNS:
+    for p in patterns:
         m = p.search(s)
         if m:
             return int(m.group(1))
     m = ANY_NUM_RE.search(s)
     return int(m.group(1)) if m else None
+
+
+def team_id(value: str):
+    return extract_id(value, TEAM_PATTERNS)
+
+
+def player_id_from_url(value: str):
+    return extract_id(value, PLAYER_PATTERNS)
 
 
 def first(row, *keys):
@@ -83,12 +93,12 @@ def valid_team(name: str, tid):
 
 
 profiles_path = resolve_source(EXT / "player_profiles" / "player_profiles.csv", PROFILE_URL, "player_profiles.csv")
+teammates_path = resolve_source(EXT / "player_teammates_played_with" / "player_teammates_played_with.csv", TEAMMATES_URL, "player_teammates_played_with.csv")
 transfers_path = resolve_source(EXT / "transfer_history" / "transfer_history.csv", TRANSFER_URL, "transfer_history.csv")
 
 player_names = {}
 with profiles_path.open("r", encoding="utf-8-sig", errors="replace", newline="") as f:
-    reader = csv.DictReader(f)
-    for r in reader:
+    for r in csv.DictReader(f):
         raw_id = first(r, "player_id", "playerId", "player_id_x").strip()
         if not raw_id:
             continue
@@ -100,6 +110,19 @@ with profiles_path.open("r", encoding="utf-8-sig", errors="replace", newline="")
         if name:
             player_names[pid] = name
 print(f"{len(player_names)} oyuncu profili okundu")
+
+# Eski / emekli bazı oyuncular profile tablosunda yok, fakat takım arkadaşları tablosunda
+# adları ve Transfermarkt oyuncu ID'leri mevcut. Buradan isim haritasını tamamla.
+profile_names_before = len(player_names)
+with teammates_path.open("r", encoding="utf-8-sig", errors="replace", newline="") as f:
+    reader = csv.DictReader(f)
+    print("teammate fields:", reader.fieldnames)
+    for r in reader:
+        other_id = player_id_from_url(first(r, "player_with_url", "teammate_url", "player_url"))
+        other_name = clean_player_name(first(r, "player_with_name", "teammate_name", "player_name"))
+        if other_id and other_name and other_id not in player_names:
+            player_names[other_id] = other_name
+print(f"isim haritası tamamlandı: {profile_names_before} -> {len(player_names)}")
 
 club_names = {}
 memberships = defaultdict(set)
@@ -135,6 +158,7 @@ with transfers_path.open("r", encoding="utf-8-sig", errors="replace", newline=""
 clubs = [[cid, name] for cid, name in club_names.items() if memberships.get(cid)]
 clubs.sort(key=lambda x: x[1].casefold())
 all_player_ids = {p for ids in memberships.values() for p in ids}
+unknown_ids = sorted(pid for pid in all_player_ids if pid not in player_names)
 players_json = {str(pid): player_names.get(pid, f"Oyuncu #{pid}") for pid in sorted(all_player_ids)}
 memberships_json = {str(cid): sorted(pids) for cid, pids in sorted(memberships.items())}
 arrivals_json = {str(cid): {str(pid): sorted(years) for pid, years in sorted(players.items())} for cid, players in sorted(arrivals.items())}
@@ -142,9 +166,9 @@ arrivals_json = {str(cid): {str(pid): sorted(years) for pid, years in sorted(pla
 if transfer_count < 100000 or len(clubs) < 500 or len(players_json) < 20000:
     raise RuntimeError(f"Historical index validation failed: {len(clubs)} clubs, {len(players_json)} players, {transfer_count} transfers")
 
-payload = {"clubs": clubs, "players": players_json, "memberships": memberships_json, "arrivals": arrivals_json, "meta": {"source": "salimt/football-datasets · Transfermarkt-derived", "transferRows": transfer_count, "playerProfiles": len(player_names), "clubs": len(clubs)}}
+payload = {"clubs": clubs, "players": players_json, "memberships": memberships_json, "arrivals": arrivals_json, "meta": {"source": "salimt/football-datasets · Transfermarkt-derived", "transferRows": transfer_count, "playerProfiles": len(player_names), "clubs": len(clubs), "unknownNames": len(unknown_ids)}}
 compact = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
-print(f"İndeks hazır: {len(clubs)} kulüp, {len(players_json)} oyuncu, {transfer_count} transfer, {len(compact)/1024/1024:.2f} MiB JSON")
+print(f"İndeks hazır: {len(clubs)} kulüp, {len(players_json)} oyuncu, {transfer_count} transfer, {len(compact)/1024/1024:.2f} MiB JSON; isimsiz={len(unknown_ids)}")
 
 
 def preferred_club(exact_names, contains=None):
@@ -167,6 +191,8 @@ if gs and rangers:
     print(f"SMOKE {gs[1]} × {rangers[1]}: {len(common)} ortak -> {', '.join(names[:30])}")
     if not any("tugay" in n.casefold() for n in names):
         raise RuntimeError("Smoke test failed: Tugay not found in Galatasaray × Rangers intersection")
+    if any(n.isdigit() for n in names):
+        raise RuntimeError("Smoke test failed: unnamed player remains in Galatasaray × Rangers intersection")
 else:
     raise RuntimeError("Smoke test failed: Galatasaray or Rangers club not found")
 
